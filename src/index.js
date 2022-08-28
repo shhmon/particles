@@ -114,9 +114,9 @@ const gravity = (group1, group2, g, minF = 0.002, maxD = 0, minD = 0.5) => {
 
 const space = new Space(
     scene,
-    Particle.factory(30, 7, 1.5, 0xf4743b),
-    Particle.factory(25, 10, 1.8, 0x22ffaa),
-    Particle.factory(60, 3, 1, 0x526aff)
+    Particle.factory(30, 7, 0.9, 0xf4743b),
+    Particle.factory(25, 10, 1, 0x22ffaa),
+    Particle.factory(60, 3, 0.6, 0x526aff)
 )
 
 space.init()
@@ -175,12 +175,12 @@ const tick = async () => {
     // controls.update()
 
     // gravity(space.groups[1], space.groups[1], -0.15)
-    gravity(space.groups[2], space.groups[2], 0.5) // blue to blue
+    gravity(space.groups[2], space.groups[2], 0.6, 0.001) // blue to blue
     gravity(space.groups[0], space.groups[0], 0.25) // orange to orange
     gravity(space.groups[1], space.groups[1], 0.15) // green to green
     // gravity(space.groups[0], space.groups[2], -0.2)
-    gravity(space.groups[2], space.groups[0], -0.2) // blue to orange
-    gravity(space.groups[2], space.groups[1], -0.4) // blue to green
+    gravity(space.groups[2], space.groups[0], -0.3, 0.001) // blue to orange
+    gravity(space.groups[2], space.groups[1], -0.5, 0.001) // blue to green
     gravity(space.groups[0], space.groups[1], -0.2) // orange to green
     gravity(space.groups[0], space.groups[2], 0.2) // orange to blue
     // gravity(space.groups[1], space.groups[0], -0.1) // green to orange
