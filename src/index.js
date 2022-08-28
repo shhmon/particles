@@ -1,7 +1,9 @@
 import './style.css'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-// import { UnrealBloomPass } from './jsm/postprocessing/UnrealBloomPass.js'
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import * as dat from 'dat.gui'
 import Particle from './Particle'
 
@@ -29,9 +31,7 @@ const camera = new THREE.PerspectiveCamera(
     0.1,
     2000
 )
-camera.position.x = 0
-camera.position.y = 0
-camera.position.z = 800
+camera.position.set(0, 0, 800)
 scene.add(camera)
 
 // Controls
@@ -48,6 +48,27 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 
+// ----------------------------------- ------ -----------------------------------
+
+// Post processing
+const renderScene = new RenderPass(scene, camera)
+const composer = new EffectComposer(renderer)
+composer.addPass(renderScene)
+
+const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(sizes.width, sizes.height),
+    0.5, // Intensity
+    5, // Radius
+    0.1
+)
+
+composer.addPass(bloomPass)
+
+// Tone mapping?
+renderer.toneMapping = THREE.LinearToneMapping
+renderer.toneMappingExposure = 1
+
+// On resize
 window.addEventListener('resize', () => {
     // Update sizes
     sizes.width = window.innerWidth
@@ -61,8 +82,6 @@ window.addEventListener('resize', () => {
     renderer.setSize(sizes.width, sizes.height)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 })
-
-// ----------------------------------- ------ -----------------------------------
 
 const gravity = (group1, group2, g, minF = 0.0, maxD = 300, minD = 0) => {
     group1.forEach((p1) => {
@@ -90,9 +109,9 @@ const gravity = (group1, group2, g, minF = 0.0, maxD = 300, minD = 0) => {
     })
 }
 
-const group1 = Particle.factory(20, 5, 2, 0xf4743b)
-const group2 = Particle.factory(40, 2, 1, 0x574ae2)
-const group3 = Particle.factory(20, 10, 3, 0x22ffaa)
+const group1 = Particle.factory(20, 5, 1.5, 0xf4743b)
+const group2 = Particle.factory(40, 2, 1, 0x526aff)
+const group3 = Particle.factory(20, 10, 2, 0x22ffaa)
 const cloud = [...group1, ...group2, ...group3]
 
 cloud.forEach((p) => {
@@ -120,17 +139,19 @@ const tick = async () => {
     // Update Orbital Controls
     // controls.update()
 
-    gravity(group1, group1, 0.3)
-    gravity(group2, group2, 0.4)
-    gravity(group2, group1, -0.4)
-    gravity(group1, group2, -0.1)
-    gravity(group3, group3, 0.2)
-    gravity(group1, group3, -0.6)
+    gravity(group1, group1, 0.15)
+    gravity(group2, group2, 0.2)
+    gravity(group2, group1, -0.2)
+    gravity(group1, group2, -0.05)
+    gravity(group3, group3, 0.1)
+    gravity(group1, group3, -0.3)
     cloud.forEach((p) => p.update())
 
-    // Render
-    renderer.render(scene, camera)
     controls.update()
+
+    // Render
+    // renderer.render(scene, camera)
+    composer.render()
 
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
