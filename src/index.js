@@ -6,6 +6,9 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import * as dat from 'dat.gui'
 import Particle from './Particle'
+import Space from './Space'
+import * as audio from './audio'
+import { range } from './utils'
 
 // ----------------------------------- Setup -----------------------------------
 
@@ -83,7 +86,7 @@ window.addEventListener('resize', () => {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 })
 
-const gravity = (group1, group2, g, minF = 0.0, maxD = 300, minD = 0) => {
+const gravity = (group1, group2, g, minF = 0.002, maxD = 0, minD = 0.5) => {
     group1.forEach((p1) => {
         let fx = 0
         let fy = 0
@@ -93,10 +96,10 @@ const gravity = (group1, group2, g, minF = 0.0, maxD = 300, minD = 0) => {
         group2.forEach((p2) => {
             const [d, dx, dy, dz] = p1.distanceTo(p2)
 
-            if (d > minD && d < maxD) {
+            if (d > minD && (d < maxD || maxD == 0)) {
                 const F = (g * p1.mass * p2.mass) / d
 
-                if (F > minF) {
+                if (Math.abs(F) > minF) {
                     fx += F * dx
                     fy += F * dy
                     fz += F * dz
@@ -109,44 +112,80 @@ const gravity = (group1, group2, g, minF = 0.0, maxD = 300, minD = 0) => {
     })
 }
 
-const group1 = Particle.factory(20, 5, 1.5, 0xf4743b)
-const group2 = Particle.factory(40, 2, 1, 0x526aff)
-const group3 = Particle.factory(20, 10, 2, 0x22ffaa)
-const cloud = [...group1, ...group2, ...group3]
+const space = new Space(
+    scene,
+    Particle.factory(30, 7, 1.5, 0xf4743b),
+    Particle.factory(25, 10, 1.8, 0x22ffaa),
+    Particle.factory(60, 3, 1, 0x526aff)
+)
 
-cloud.forEach((p) => {
-    p.randomPos()
-    scene.add(p.mesh)
+space.init()
+
+window.addEventListener('keydown', (e) => {
+    if (e.keyCode == 32) {
+        space.spreadParticles()
+    }
+})
+
+var raycaster = new THREE.Raycaster()
+var mouse = new THREE.Vector2()
+
+window.addEventListener('mousemove', (e) => {
+    mouse.x = (e.clientX / window.innerWidth) * 2 - 1
+    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1
+    raycaster.setFromCamera(mouse.clone(), camera)
+
+    const objects = raycaster.intersectObjects(scene.children)
+    const particles = objects.map((o) => space.find(o))
+    particles.forEach((p) =>
+        p.applyForce(
+            {
+                x: THREE.MathUtils.randFloat(20, 30),
+                y: THREE.MathUtils.randFloat(20, 30),
+                z: THREE.MathUtils.randFloat(20, 30),
+            },
+            1
+        )
+    )
 })
 
 const clock = new THREE.Clock()
 
-window.addEventListener('keydown', (e) => {
-    if (e.keyCode == 32) {
-        cloud.forEach((p) =>
-            p.setPosition({
-                x: THREE.MathUtils.randFloat(-40, 40),
-                y: THREE.MathUtils.randFloat(-40, 40),
-                z: THREE.MathUtils.randFloat(-40, 40),
-            })
-        )
-    }
-})
+let data = new Uint8Array(audio.analyser.frequencyBinCount)
 
 const tick = async () => {
     const elapsedTime = clock.getElapsedTime()
 
+    audio.analyser.getByteFrequencyData(data)
+
+    if (data[5] > 234) {
+        // space.spreadParticles()
+        const particle = new Particle(3, 1, 0xffffff, 0)
+        particle.setPosition({
+            x: THREE.MathUtils.randFloat(-50, 50),
+            y: THREE.MathUtils.randFloat(-50, 50),
+            z: THREE.MathUtils.randFloat(-50, 50),
+        })
+        gravity(space.groups[0], [particle], -10)
+        gravity(space.groups[1], [particle], -7)
+        range(2).forEach(() => space.update())
+    }
+
     // Update Orbital Controls
     // controls.update()
 
-    gravity(group1, group1, 0.15)
-    gravity(group2, group2, 0.2)
-    gravity(group2, group1, -0.2)
-    gravity(group1, group2, -0.05)
-    gravity(group3, group3, 0.1)
-    gravity(group1, group3, -0.3)
-    cloud.forEach((p) => p.update())
+    // gravity(space.groups[1], space.groups[1], -0.15)
+    gravity(space.groups[2], space.groups[2], 0.5) // blue to blue
+    gravity(space.groups[0], space.groups[0], 0.25) // orange to orange
+    gravity(space.groups[1], space.groups[1], 0.15) // green to green
+    // gravity(space.groups[0], space.groups[2], -0.2)
+    gravity(space.groups[2], space.groups[0], -0.2) // blue to orange
+    gravity(space.groups[2], space.groups[1], -0.4) // blue to green
+    gravity(space.groups[0], space.groups[1], -0.2) // orange to green
+    gravity(space.groups[0], space.groups[2], 0.2) // orange to blue
+    // gravity(space.groups[1], space.groups[0], -0.1) // green to orange
 
+    space.update()
     controls.update()
 
     // Render
