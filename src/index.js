@@ -60,8 +60,8 @@ composer.addPass(renderScene)
 
 const bloomPass = new UnrealBloomPass(
     new THREE.Vector2(sizes.width, sizes.height),
-    0.5, // Intensity
-    5, // Radius
+    0.4, // Intensity
+    1.4, // Radius
     0.1
 )
 
@@ -175,7 +175,7 @@ const tick = async () => {
     // controls.update()
 
     // gravity(space.groups[1], space.groups[1], -0.15)
-    gravity(space.groups[2], space.groups[2], 0.6, 0.001) // blue to blue
+    gravity(space.groups[2], space.groups[2], 0.5, 0.001) // blue to blue
     gravity(space.groups[0], space.groups[0], 0.25) // orange to orange
     gravity(space.groups[1], space.groups[1], 0.15) // green to green
     // gravity(space.groups[0], space.groups[2], -0.2)
@@ -183,7 +183,7 @@ const tick = async () => {
     gravity(space.groups[2], space.groups[1], -0.5, 0.001) // blue to green
     gravity(space.groups[0], space.groups[1], -0.2) // orange to green
     gravity(space.groups[0], space.groups[2], 0.2) // orange to blue
-    // gravity(space.groups[1], space.groups[0], -0.1) // green to orange
+    //gravity(space.groups[1], space.groups[0], -0.1) // green to orange
 
     space.update()
     controls.update()
